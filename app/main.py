@@ -1,0 +1,86 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from contextlib import asynccontextmanager
+import logging
+
+from app.core.config import settings
+from app.core.redis import RedisClient
+from app.api.v1.api import api_router
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO if not settings.DEBUG else logging.DEBUG,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle startup and shutdown events"""
+    # Startup
+    logger.info("Starting up B Boutique API...")
+    try:
+        # Initialize Redis connection
+        await RedisClient.get_instance()
+        logger.info("Redis connection established")
+    except Exception as e:
+        logger.error(f"Failed to connect to Redis: {e}")
+
+    yield
+
+    # Shutdown
+    logger.info("Shutting down B Boutique API...")
+    try:
+        await RedisClient.close()
+        logger.info("Redis connection closed")
+    except Exception as e:
+        logger.error(f"Error closing Redis connection: {e}")
+
+
+# Create FastAPI app
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    version=settings.VERSION,
+    docs_url=settings.DOCS_URL,
+    redoc_url=settings.REDOC_URL,
+    openapi_url=settings.OPENAPI_URL,
+    lifespan=lifespan,
+)
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Add security middleware
+if not settings.DEBUG:
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
+
+# Include API router
+app.include_router(api_router, prefix=settings.API_V1_STR)
+
+
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {
+        "message": "Welcome to B Boutique API",
+        "version": settings.VERSION,
+        "docs": settings.DOCS_URL,
+    }
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=settings.DEBUG,
+    )
