@@ -7,6 +7,7 @@ import logging
 from app.core.config import settings
 from app.core.redis import RedisClient
 from app.api.v1.api import api_router
+from app.admin import setup_admin
 
 # Configure logging
 logging.basicConfig(
@@ -52,7 +53,7 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_origins=settings.get_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -64,6 +65,9 @@ if not settings.DEBUG:
 
 # Include API router
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+# Setup admin panel
+setup_admin(app)
 
 
 @app.get("/")

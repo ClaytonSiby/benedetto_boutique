@@ -1,7 +1,3 @@
-# Import all models here for Alembic to detect them
-from app.db.session import Base
-
-# Import all models
 from app.models.user import User
 from app.models.profile import Profile
 from app.models.address import Address
@@ -13,3 +9,20 @@ from app.models.cart import Cart, CartItem
 from app.models.order import Order, OrderItem
 from app.models.payment import Payment
 from app.models.review import Review
+
+__all__ = [
+    "User",
+    "Profile",
+    "Address",
+    "Role",
+    "UserRole",
+    "Category",
+    "Product",
+    "Inventory",
+    "Cart",
+    "CartItem",
+    "Order",
+    "OrderItem",
+    "Payment",
+    "Review",
+]

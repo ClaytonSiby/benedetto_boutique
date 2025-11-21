@@ -1,5 +1,5 @@
-from pydantic_settings import BaseSettings
-from typing import Optional, List
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Optional, List, Union
 from functools import lru_cache
 
 
@@ -11,8 +11,14 @@ class Settings(BaseSettings):
     DEBUG: bool = False
 
     # CORS Settings
-    BACKEND_CORS_ORIGINS: List[str] = [
+    BACKEND_CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:3000", "http://localhost:8000"]
+
+    @property
+    def get_cors_origins(self) -> List[str]:
+        if isinstance(self.BACKEND_CORS_ORIGINS, str):
+            return [origin.strip() for origin in self.BACKEND_CORS_ORIGINS.split(",")]
+        return self.BACKEND_CORS_ORIGINS
 
     # Database Settings
     POSTGRES_USER: str
@@ -65,9 +71,11 @@ class Settings(BaseSettings):
     REDOC_URL: str = "/redoc"
     OPENAPI_URL: str = "/openapi.json"
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        extra="ignore"
+    )
 
 
 @lru_cache()
