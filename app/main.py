@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from contextlib import asynccontextmanager
@@ -7,6 +7,7 @@ import logging
 from app.core.config import settings
 from app.core.redis import RedisClient
 from app.api.v1.api import api_router
+from app.api.deps import get_current_user
 from app.admin import setup_admin
 
 # Configure logging
