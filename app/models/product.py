@@ -1,6 +1,6 @@
-from sqlalchemy import Column, String, Text, Numeric, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, String, Text, Numeric, Boolean, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 import uuid
 
@@ -20,7 +20,7 @@ class Product(Base):
     price = Column(Numeric(10, 2), nullable=False)
     sale_price = Column(Numeric(10, 2), nullable=True)
     sku = Column(String, unique=True, nullable=False, index=True)
-    images = Column(JSONB, nullable=True)  # Store array of image URLs as JSON
+    images = Column(JSON, nullable=True)  # Store array of image URLs as JSON
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow,

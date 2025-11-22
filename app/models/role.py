@@ -1,6 +1,6 @@
-from sqlalchemy import Column, String, Text, ForeignKey
+from sqlalchemy import Column, String, Text, ForeignKey, JSON
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
+from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 import uuid
 
@@ -14,7 +14,7 @@ class Role(Base):
                 default=uuid.uuid4, index=True)
     name = Column(String, unique=True, nullable=False, index=True)
     description = Column(Text, nullable=True)
-    permissions = Column(ARRAY(String), nullable=True)
+    permissions = Column(JSON, nullable=True)
 
     # Relationships
     user_roles = relationship(

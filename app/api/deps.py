@@ -2,6 +2,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from sqlalchemy.orm import Session
+import uuid
 
 from app.core.config import settings
 from app.db.session import get_db
@@ -20,10 +21,12 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     )
     try:
         payload = decode_access_token(token)
-        user_id: str = payload.get("sub")  # UUID as string
-        if user_id is None:
+        user_id_str: str = payload.get("sub")  # UUID as string
+        if user_id_str is None:
             raise credentials_exception
-    except JWTError:
+        # Convert string to UUID object
+        user_id = uuid.UUID(user_id_str)
+    except (JWTError, ValueError):
         raise credentials_exception
 
     user = db.query(User).filter(User.id == user_id).first()

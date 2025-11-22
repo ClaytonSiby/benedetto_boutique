@@ -20,6 +20,8 @@ help:
 	@echo "  make shell-db         - Open PostgreSQL shell"
 	@echo "  make clean            - Remove containers, volumes, and images"
 	@echo "  make test             - Run tests"
+	@echo "  make test-cov         - Run tests with coverage report"
+	@echo "  make test-quick       - Run tests (stop on first failure)"
 	@echo "  make migrate          - Create a new migration"
 	@echo "  make upgrade          - Apply migrations"
 	@echo "  make downgrade        - Rollback migrations"
@@ -90,7 +92,13 @@ test:
 	$(VENV)/bin/pytest -v
 
 test-cov:
-	$(VENV)/bin/pytest --cov=app --cov-report=html
+	$(VENV)/bin/pytest --cov=app --cov-report=term-missing --cov-report=html --cov-report=xml
+
+test-watch:
+	$(VENV)/bin/pytest-watch -v
+
+test-quick:
+	$(VENV)/bin/pytest -x -v
 
 # Code Quality
 format:

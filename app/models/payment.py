@@ -1,6 +1,6 @@
-from sqlalchemy import Column, String, Numeric, DateTime, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Column, String, Numeric, DateTime, ForeignKey, Enum as SQLEnum, JSON
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 import uuid
 import enum
@@ -29,7 +29,7 @@ class Payment(Base):
                     default=PaymentStatus.PENDING, nullable=False, index=True)
     transaction_id = Column(String, unique=True, nullable=True, index=True)
     # Store provider-specific data
-    provider_data = Column(JSONB, nullable=True)
+    provider_data = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Relationships
