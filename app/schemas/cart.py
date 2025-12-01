@@ -26,6 +26,7 @@ class CartItemResponse(CartItemBase):
     price: Decimal
     created_at: datetime
     updated_at: datetime
+    product: Optional[dict] = None  # Will contain product details
 
 
 class CartResponse(BaseModel):
