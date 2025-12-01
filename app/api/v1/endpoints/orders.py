@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 from uuid import UUID
 from decimal import Decimal
 import uuid
 
 from app.db.session import get_db
-from app.models.order import Order, OrderItem
+from app.models.order import Order, OrderItem, OrderStatus
+from app.models.payment import Payment, PaymentStatus
 from app.models.user import User
 from app.schemas.order import OrderCreate, OrderResponse, OrderUpdate
 from app.api.deps import get_current_user
@@ -38,9 +39,13 @@ def get_order(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Get order by ID"""
+    """Get order by ID with all related data"""
     order = (
         db.query(Order)
+        .options(
+            joinedload(Order.order_items).joinedload(OrderItem.product),
+            joinedload(Order.payment)
+        )
         .filter(Order.id == order_id, Order.user_id == current_user.id)
         .first()
     )
@@ -90,6 +95,16 @@ def create_order(
         )
         db.add(order_item)
 
+    # Create payment record
+    payment = Payment(
+        order_id=db_order.id,
+        payment_method=order_data.payment_method or "card",
+        amount=total,
+        currency="ZAR",
+        status=PaymentStatus.PENDING,
+    )
+    db.add(payment)
+
     db.commit()
     db.refresh(db_order)
     return db_order
@@ -114,6 +129,43 @@ def update_order(
     update_data = order_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(order, field, value)
+
+    db.commit()
+    db.refresh(order)
+    return order
+
+
+@router.post("/{order_id}/cancel", response_model=OrderResponse)
+def cancel_order(
+    order_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Cancel an order"""
+    order = (
+        db.query(Order)
+        .options(joinedload(Order.payment))
+        .filter(Order.id == order_id, Order.user_id == current_user.id)
+        .first()
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Check if order can be cancelled
+    if order.status in [OrderStatus.SHIPPED, OrderStatus.DELIVERED, OrderStatus.CANCELLED, OrderStatus.REFUNDED]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot cancel order with status: {order.status}"
+        )
+
+    # Update order status
+    order.status = OrderStatus.CANCELLED
+
+    # If payment exists and is completed, mark it for refund
+    if order.payment and order.payment.status == PaymentStatus.COMPLETED:
+        order.payment.status = PaymentStatus.REFUNDED
+        # In production, you would initiate an actual refund via Stripe here
+        # stripe.refund.create(payment_intent=order.payment.transaction_id)
 
     db.commit()
     db.refresh(order)
