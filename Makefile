@@ -35,6 +35,10 @@ install:
 	$(VENV)/bin/pip install -r requirements.txt
 	@echo "Virtual environment created. Activate it with: source $(VENV)/bin/activate"
 
+# Create a superuser
+createsuperuser:
+	PYTHONPATH=./ $(VENV)/bin/python scripts/create_superuser.py
+
 dev:
 	$(VENV)/bin/uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
