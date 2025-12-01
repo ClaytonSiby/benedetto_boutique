@@ -4,6 +4,8 @@ from datetime import datetime
 from typing import Optional, List
 from decimal import Decimal
 from app.models.order import OrderStatus
+from app.schemas.product import ProductResponse
+from app.schemas.payment import PaymentResponse
 
 
 class OrderItemBase(BaseModel):
@@ -22,6 +24,7 @@ class OrderItemResponse(OrderItemBase):
     id: UUID
     order_id: UUID
     subtotal: Decimal
+    product: Optional[ProductResponse] = None
 
 
 class OrderBase(BaseModel):
@@ -31,6 +34,7 @@ class OrderBase(BaseModel):
 
 class OrderCreate(OrderBase):
     items: List[OrderItemCreate]
+    payment_method: Optional[str] = "card"
 
 
 class OrderUpdate(BaseModel):
@@ -53,3 +57,4 @@ class OrderResponse(OrderBase):
     created_at: datetime
     updated_at: datetime
     order_items: List[OrderItemResponse] = []
+    payment: Optional[PaymentResponse] = None
