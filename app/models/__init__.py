@@ -10,6 +10,7 @@ from app.models.order import Order, OrderItem
 from app.models.payment import Payment
 from app.models.review import Review
 from app.models.blog import BlogPost
+from app.models.favorite import Favorite
 
 __all__ = [
     "User",
@@ -27,4 +28,5 @@ __all__ = [
     "Payment",
     "Review",
     "BlogPost",
+    "Favorite",
 ]
