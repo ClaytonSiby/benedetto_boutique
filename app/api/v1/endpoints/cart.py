@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from uuid import UUID
 
 from app.db.session import get_db
@@ -18,7 +18,12 @@ def get_cart(
     current_user: User = Depends(get_current_user),
 ):
     """Get current user's cart"""
-    cart = db.query(Cart).filter(Cart.user_id == current_user.id).first()
+    cart = (
+        db.query(Cart)
+        .options(joinedload(Cart.cart_items).joinedload(CartItem.product))
+        .filter(Cart.user_id == current_user.id)
+        .first()
+    )
     if not cart:
         # Create cart if it doesn't exist
         cart = Cart(user_id=current_user.id)
@@ -66,7 +71,14 @@ def add_to_cart(
         db.add(cart_item)
 
     db.commit()
-    db.refresh(cart)
+
+    # Refresh cart with eager loading
+    cart = (
+        db.query(Cart)
+        .options(joinedload(Cart.cart_items).joinedload(CartItem.product))
+        .filter(Cart.id == cart.id)
+        .first()
+    )
     return cart
 
 
@@ -92,7 +104,14 @@ def update_cart_item(
 
     cart_item.quantity = item_update.quantity
     db.commit()
-    db.refresh(cart)
+
+    # Refresh cart with eager loading
+    cart = (
+        db.query(Cart)
+        .options(joinedload(Cart.cart_items).joinedload(CartItem.product))
+        .filter(Cart.id == cart.id)
+        .first()
+    )
     return cart
 
 
@@ -117,7 +136,14 @@ def remove_from_cart(
 
     db.delete(cart_item)
     db.commit()
-    db.refresh(cart)
+
+    # Refresh cart with eager loading
+    cart = (
+        db.query(Cart)
+        .options(joinedload(Cart.cart_items).joinedload(CartItem.product))
+        .filter(Cart.id == cart.id)
+        .first()
+    )
     return cart
 
 

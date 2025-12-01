@@ -36,6 +36,18 @@ def list_products(
     return products
 
 
+@router.get("/slug/{slug}", response_model=ProductResponse)
+def get_product_by_slug(slug: str, db: Session = Depends(get_db)):
+    """Get product by slug"""
+    product = db.query(Product).filter(Product.slug == slug).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    # Ensure images is always a list
+    if product.images is not None and not isinstance(product.images, list):
+        product.images = [product.images]
+    return product
+
+
 @router.get("/{product_id}", response_model=ProductResponse)
 def get_product(product_id: UUID, db: Session = Depends(get_db)):
     """Get product by ID"""

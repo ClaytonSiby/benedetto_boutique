@@ -4,6 +4,8 @@ from datetime import datetime
 from typing import Optional, List
 from decimal import Decimal
 
+from app.schemas.product import ProductResponse
+
 
 class CartItemBase(BaseModel):
     product_id: UUID
@@ -26,7 +28,7 @@ class CartItemResponse(CartItemBase):
     price: Decimal
     created_at: datetime
     updated_at: datetime
-    product: Optional[dict] = None  # Will contain product details
+    product: Optional[ProductResponse] = None  # Will contain product details
 
 
 class CartResponse(BaseModel):
