@@ -54,3 +54,13 @@ def get_current_admin(current_user: User = Depends(get_current_user), db: Sessio
         )
 
     return current_user
+
+
+def get_current_active_admin(current_user: User = Depends(get_current_admin)) -> User:
+    """Verify current user is active admin"""
+    if not current_user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Inactive user"
+        )
+    return current_user

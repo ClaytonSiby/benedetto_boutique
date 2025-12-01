@@ -9,6 +9,7 @@ from app.models.cart import Cart, CartItem
 from app.models.order import Order, OrderItem
 from app.models.payment import Payment
 from app.models.review import Review
+from app.models.blog import BlogPost
 
 __all__ = [
     "User",
@@ -25,4 +26,5 @@ __all__ = [
     "OrderItem",
     "Payment",
     "Review",
+    "BlogPost",
 ]
