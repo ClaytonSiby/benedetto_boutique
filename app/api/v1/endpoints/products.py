@@ -29,6 +29,10 @@ def list_products(
         query = query.filter(Product.is_active == is_active)
 
     products = query.offset(skip).limit(limit).all()
+    # Ensure images is always a list for each product
+    for product in products:
+        if product.images is not None and not isinstance(product.images, list):
+            product.images = [product.images]
     return products
 
 
