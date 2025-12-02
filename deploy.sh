@@ -29,7 +29,7 @@ echo "✓ Stopped existing containers"
 echo ""
 
 echo "Step 4: Building and starting services (without SSL first)..."
-docker-compose -f docker-compose.prod.yml up -d postgres redis backend celery_worker frontend
+docker-compose -f docker-compose.prod.yml up -d redis backend celery_worker frontend
 echo "✓ Core services started"
 echo ""
 
