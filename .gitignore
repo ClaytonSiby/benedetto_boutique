@@ -3,6 +3,9 @@
 .env.local
 .env.*.local
 
+# Keep production template
+!.env.production
+
 # Python
 __pycache__/
 *.py[cod]
@@ -60,3 +63,10 @@ celerybeat.pid
 
 # Docker
 docker-compose.override.yml
+
+# SSL certificates
+certbot/
+nginx/ssl/
+
+# Deployment artifacts
+*.pid
