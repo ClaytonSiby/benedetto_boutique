@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from contextlib import asynccontextmanager
 import logging
 
@@ -52,6 +53,19 @@ app = FastAPI(
     openapi_url=settings.OPENAPI_URL,
     lifespan=lifespan,
 )
+
+# Trust proxy headers for HTTPS detection
+
+
+class ProxyHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        # Trust X-Forwarded-Proto from nginx
+        if "x-forwarded-proto" in request.headers:
+            request.scope["scheme"] = request.headers["x-forwarded-proto"]
+        return await call_next(request)
+
+
+app.add_middleware(ProxyHeadersMiddleware)
 
 # Configure CORS
 app.add_middleware(

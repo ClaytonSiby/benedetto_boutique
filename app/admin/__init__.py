@@ -102,7 +102,8 @@ def setup_admin(app):
         app,
         engine,
         title="Benedetto Boutique Admin",
-        authentication_backend=authentication_backend
+        authentication_backend=authentication_backend,
+        base_url="/admin"
     )
 
     # Register all model admins
