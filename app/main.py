@@ -4,6 +4,8 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from contextlib import asynccontextmanager
 import logging
+from alembic.config import Config
+from alembic import command
 
 from app.core.config import settings
 from app.core.redis import RedisClient
@@ -19,11 +21,28 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def run_migrations():
+    """Run database migrations on startup"""
+    try:
+        logger.info("Running database migrations...")
+        alembic_cfg = Config("alembic.ini")
+        command.upgrade(alembic_cfg, "head")
+        logger.info("Database migrations completed successfully")
+    except Exception as e:
+        logger.error(f"Failed to run migrations: {e}")
+        # Don't raise - let app start even if migrations fail
+        # This allows debugging connection issues
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Handle startup and shutdown events"""
     # Startup
     logger.info("Starting up B Boutique API...")
+
+    # Run migrations first
+    run_migrations()
+
     try:
         # Initialize Redis connection
         await RedisClient.get_instance()
