@@ -18,18 +18,18 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile.prod
     container_name: b_boutique_backend
     restart: always
     env_file:
-      - ./backend/.env.production
+      - .env.production
     depends_on:
       redis:
         condition: service_healthy
     volumes:
-      - ./backend/app:/app/app
-      - ./backend/alembic:/app/alembic
+      - ./app:/app/app
+      - ./alembic:/app/alembic
     command: >
       sh -c "alembic upgrade head &&
              uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4"
@@ -43,12 +43,12 @@ services:
 
   celery_worker:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile.prod
     container_name: b_boutique_celery_worker
     restart: always
     env_file:
-      - ./backend/.env.production
+      - .env.production
     depends_on:
       - redis
     command: celery -A app.worker.celery_app worker --loglevel=info
@@ -57,7 +57,7 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: ../frontend
       dockerfile: Dockerfile.prod
       args:
         - NEXT_PUBLIC_API_URL=https://benedettoboutique.com/api
