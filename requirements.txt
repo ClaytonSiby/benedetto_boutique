@@ -30,6 +30,9 @@ stripe==11.2.0
 httpx==0.28.1
 python-dateutil==2.9.0
 
+# Email
+sendgrid==6.11.0
+
 # Development
 pytest==8.3.4
 pytest-asyncio==0.24.0
