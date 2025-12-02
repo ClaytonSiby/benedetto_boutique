@@ -169,3 +169,45 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
             status_code=500,
             detail=f"Authentication failed: {str(e)}"
         )
+
+
+@router.post("/create-admin", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def create_admin_user(
+    admin_secret: str,
+    user: UserCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Create an admin user. Protected by a secret key.
+    Remove this endpoint after creating your admin user!
+    """
+    # Check secret key - set this in your environment variables
+    if admin_secret != settings.SECRET_KEY:
+        raise HTTPException(status_code=403, detail="Invalid admin secret")
+
+    # Check if user already exists
+    existing_user = db.query(User).filter(
+        (User.username == user.username) | (User.email == user.email)
+    ).first()
+
+    if existing_user:
+        raise HTTPException(
+            status_code=400,
+            detail="User with this username or email already exists"
+        )
+
+    # Create admin user
+    admin_user = User(
+        username=user.username,
+        email=user.email,
+        password_hash=get_password_hash(user.password),
+        is_active=True,
+        is_verified=True,
+        is_admin=True
+    )
+
+    db.add(admin_user)
+    db.commit()
+    db.refresh(admin_user)
+
+    return admin_user
