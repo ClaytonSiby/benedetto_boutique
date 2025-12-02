@@ -1,4 +1,23 @@
 services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: b_boutique_postgres
+    restart: always
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-b_boutique}
+      - POSTGRES_USER=${POSTGRES_USER:-bboutique}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-bboutique_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -h 127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - b_boutique_network
   redis:
     image: redis:7-alpine
     container_name: b_boutique_redis
@@ -27,6 +46,11 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_PORT=5432
     volumes:
       - ./app:/app/app
       - ./alembic:/app/alembic
@@ -60,16 +84,18 @@ services:
       context: ../frontend
       dockerfile: Dockerfile.prod
       args:
-        - NEXT_PUBLIC_API_URL=https://benedettoboutique.com/api
-        - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
-        - NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://benedettoboutique.com/api}
+        - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
+        - NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
     container_name: b_boutique_frontend
     restart: always
+    env_file:
+      - ../frontend/.env.production
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=https://benedettoboutique.com/api
-      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
-      - NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://benedettoboutique.com/api}
+      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
+      - NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
     depends_on:
       - backend
     healthcheck:
@@ -109,6 +135,8 @@ services:
 
 volumes:
   redis_data:
+    driver: local
+  postgres_data:
     driver: local
 
 networks:

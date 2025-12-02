@@ -26,10 +26,15 @@ class Settings(BaseSettings):
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_PORT: str = "5432"
     POSTGRES_DB: str = "b_boutique"
+    # SSL mode for managed Postgres providers. Not needed for local Postgres.
+    POSTGRES_SSLMODE: Optional[str] = None
 
     @property
     def DATABASE_URL(self) -> str:
-        return f"postgresql+psycopg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        base = f"postgresql+psycopg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        if self.POSTGRES_SSLMODE:
+            return f"{base}?sslmode={self.POSTGRES_SSLMODE}"
+        return base
 
     # Redis Settings
     REDIS_HOST: str = "localhost"
@@ -83,6 +88,7 @@ class Settings(BaseSettings):
     OPENAPI_URL: str = "/openapi.json"
 
     model_config = SettingsConfigDict(
+        # Load from environment by default; fall back to .env if present
         env_file=".env",
         case_sensitive=True,
         extra="ignore"
