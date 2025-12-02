@@ -14,7 +14,11 @@ class User(Base):
                 default=uuid.uuid4, index=True)
     username = Column(String, unique=True, nullable=False, index=True)
     email = Column(String, unique=True, nullable=False, index=True)
-    password_hash = Column(String, nullable=False)
+    password_hash = Column(String, nullable=True)  # Nullable for OAuth users
+    # 'google', 'facebook', etc.
+    oauth_provider = Column(String, nullable=True)
+    # OAuth provider user ID
+    oauth_id = Column(String, nullable=True, index=True)
     is_active = Column(Boolean, default=True, nullable=False)
     is_verified = Column(Boolean, default=False, nullable=False)
     is_admin = Column(Boolean, default=False, nullable=False)

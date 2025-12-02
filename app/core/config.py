@@ -71,6 +71,12 @@ class Settings(BaseSettings):
     SENDGRID_FROM_EMAIL: str = "noreply@bboutique.com"
     ADMIN_EMAIL: str = "admin@bboutique.com"
 
+    # Google OAuth Settings
+    GOOGLE_CLIENT_ID: Optional[str] = None
+    GOOGLE_CLIENT_SECRET: Optional[str] = None
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/google/callback"
+    FRONTEND_URL: str = "http://localhost:3000"
+
     # API Documentation
     DOCS_URL: str = "/docs"
     REDOC_URL: str = "/redoc"
