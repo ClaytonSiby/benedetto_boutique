@@ -14,6 +14,7 @@ from app.api.v1.endpoints import (
     profiles,
     blog,
     favorites,
+    contact,
 )
 from app.api.deps import get_current_user
 
@@ -29,6 +30,7 @@ api_router.include_router(reviews.router, prefix="/reviews", tags=["reviews"])
 api_router.include_router(
     inventory.router, prefix="/inventory", tags=["inventory"])
 api_router.include_router(blog.router, prefix="/blog", tags=["blog"])
+api_router.include_router(contact.router, prefix="/contact", tags=["contact"])
 api_router.include_router(health.router, prefix="/health", tags=["health"])
 
 # Protected router: all endpoints below require valid token

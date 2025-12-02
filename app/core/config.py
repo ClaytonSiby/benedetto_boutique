@@ -66,6 +66,11 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    # SendGrid Email Settings
+    SENDGRID_API_KEY: Optional[str] = None
+    SENDGRID_FROM_EMAIL: str = "noreply@bboutique.com"
+    ADMIN_EMAIL: str = "admin@bboutique.com"
+
     # API Documentation
     DOCS_URL: str = "/docs"
     REDOC_URL: str = "/redoc"
