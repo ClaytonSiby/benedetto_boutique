@@ -15,6 +15,7 @@ from app.api.v1.endpoints import (
     blog,
     favorites,
     contact,
+    uploads,
 )
 from app.api.deps import get_current_user
 
@@ -49,6 +50,8 @@ protected_router.include_router(
     profiles.router, prefix="/profiles", tags=["profiles"])
 protected_router.include_router(
     favorites.router, prefix="/favorites", tags=["favorites"])
+protected_router.include_router(
+    uploads.router, prefix="/uploads", tags=["uploads"])
 
 # Mount protected router
 api_router.include_router(protected_router)

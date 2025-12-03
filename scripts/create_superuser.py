@@ -1,9 +1,14 @@
-import sys
-import getpass
-from app.db.session import SessionLocal
-from app.models.user import User
-from app.models.role import Role, UserRole
 from app.core.security import get_password_hash
+from app.models.role import Role, UserRole
+from app.models.user import User
+from app.db.session import SessionLocal
+import sys
+import os
+import getpass
+
+# Add parent directory to Python path
+sys.path.insert(0, os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '..')))
 
 
 def main():
