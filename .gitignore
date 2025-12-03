@@ -4,7 +4,7 @@
 .env.*.local
 
 # Keep production template
-!.env.production
+.env.production
 
 # Python
 __pycache__/
