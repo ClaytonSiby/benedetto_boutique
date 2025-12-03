@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 import stripe
-import os
 
 from app.db.session import get_db
 from app.models.payment import Payment, PaymentStatus
@@ -11,11 +10,22 @@ from app.models.order import Order, OrderStatus
 from app.models.user import User
 from app.schemas.payment import PaymentCreate, PaymentResponse, PaymentUpdate
 from app.api.deps import get_current_user
+from app.services.stripe_service import stripe_service
+from app.core.config import settings
 
 router = APIRouter()
 
-# Initialize Stripe
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
+
+@router.get("/config")
+async def get_stripe_config():
+    """Get Stripe publishable key for frontend"""
+    try:
+        return {
+            "publishableKey": stripe_service.get_publishable_key(),
+            "currency": settings.STRIPE_CURRENCY.lower(),
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/create-payment-intent")
@@ -35,10 +45,10 @@ async def create_payment_intent(
         raise HTTPException(status_code=404, detail="Order not found")
 
     try:
-        # Create PaymentIntent
-        intent = stripe.PaymentIntent.create(
-            amount=int(float(order.total) * 100),  # Convert to cents
-            currency="zar",  # South African Rand
+        # Create PaymentIntent using our service
+        payment_intent = stripe_service.create_payment_intent(
+            amount=order.total,
+            currency=settings.STRIPE_CURRENCY.lower(),
             metadata={
                 "order_id": str(order.id),
                 "order_number": order.order_number,
@@ -46,50 +56,87 @@ async def create_payment_intent(
             },
         )
 
+        # Create payment record in database
+        payment = Payment(
+            order_id=order.id,
+            payment_method="stripe",
+            amount=order.total,
+            currency=settings.STRIPE_CURRENCY,
+            status=PaymentStatus.PENDING,
+            transaction_id=payment_intent["id"],
+        )
+        db.add(payment)
+        db.commit()
+
         return {
-            "clientSecret": intent.client_secret,
-            "paymentIntentId": intent.id,
+            "clientSecret": payment_intent["client_secret"],
+            "paymentIntentId": payment_intent["id"],
+            "paymentId": str(payment.id),
         }
-    except stripe.error.StripeError as e:
+    except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/webhook")
 async def stripe_webhook(
-    request: dict,
+    request: Request,
+    stripe_signature: str = Header(None, alias="stripe-signature"),
     db: Session = Depends(get_db),
 ):
     """Handle Stripe webhook events"""
-    event_type = request.get("type")
-    data = request.get("data", {}).get("object", {})
+    if not stripe_signature:
+        raise HTTPException(
+            status_code=400, detail="Missing stripe-signature header")
 
-    if event_type == "payment_intent.succeeded":
-        payment_intent_id = data.get("id")
-        metadata = data.get("metadata", {})
-        order_id = metadata.get("order_id")
+    try:
+        # Get raw body
+        payload = await request.body()
 
-        if order_id:
-            # Update order and create payment record
-            order = db.query(Order).filter(Order.id == UUID(order_id)).first()
-            if order:
-                # Create payment record
-                payment = Payment(
-                    order_id=order.id,
-                    payment_method="stripe",
-                    amount=order.total,
-                    currency="zar",
-                    status=PaymentStatus.COMPLETED,
-                    transaction_id=payment_intent_id,
-                    provider_data=metadata,
+        # Verify webhook signature
+        event = stripe_service.construct_webhook_event(
+            payload, stripe_signature)
+
+        # Handle different event types
+        if event.type == "payment_intent.succeeded":
+            payment_intent = event.data.object
+            metadata = payment_intent.metadata
+            order_id = metadata.get("order_id")
+
+            if order_id:
+                # Update payment and order status
+                payment = (
+                    db.query(Payment)
+                    .filter(Payment.transaction_id == payment_intent.id)
+                    .first()
                 )
-                db.add(payment)
 
-                # Update order status
-                order.status = "processing"
+                if payment:
+                    payment.status = PaymentStatus.COMPLETED
 
+                    # Update order status
+                    order = db.query(Order).filter(
+                        Order.id == UUID(order_id)).first()
+                    if order:
+                        order.status = OrderStatus.PROCESSING
+
+                    db.commit()
+
+        elif event.type == "payment_intent.payment_failed":
+            payment_intent = event.data.object
+            # Update payment status to failed
+            payment = (
+                db.query(Payment)
+                .filter(Payment.transaction_id == payment_intent.id)
+                .first()
+            )
+            if payment:
+                payment.status = PaymentStatus.FAILED
                 db.commit()
 
-    return {"status": "success"}
+        return {"status": "success"}
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/", response_model=List[PaymentResponse])
