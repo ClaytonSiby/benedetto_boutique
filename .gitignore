@@ -30,6 +30,9 @@ wheels/
 .installed.cfg
 *.egg
 
+# uploads
+uploads/
+
 # Virtual Environment
 venv/
 env/
