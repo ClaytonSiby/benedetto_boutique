@@ -6,6 +6,7 @@ import uuid
 from PIL import Image
 import io
 import os
+from datetime import timedelta
 
 from app.core.config import settings
 
@@ -29,6 +30,20 @@ class StorageService:
             "medium": (600, 600),
             "large": (1200, 1200),
         }
+
+    def get_public_url(self, blob_name: str) -> str:
+        """
+        Get proxy URL for a blob.
+        Returns URL that proxies through the backend API.
+
+        Args:
+            blob_name: Path to the blob in the bucket
+
+        Returns:
+            Proxy URL string
+        """
+        # Return proxy URL through our backend
+        return f"/api/v1/uploads/gcs/{blob_name}"
 
     def upload_image(self, file_content: bytes, filename: str, content_type: str) -> dict:
         """
@@ -57,10 +72,10 @@ class StorageService:
         original_path = f"uploads/{unique_filename}"
         blob = self.bucket.blob(original_path)
         blob.upload_from_string(file_content, content_type=content_type)
-        blob.make_public()
 
+        # Get public URLs
         variants = {
-            "original": f"/{original_path}"
+            "original": self.get_public_url(original_path)
         }
 
         # Create and upload variants
@@ -81,9 +96,9 @@ class StorageService:
             variant_blob = self.bucket.blob(variant_path)
             variant_blob.upload_from_string(
                 buffer.getvalue(), content_type="image/jpeg")
-            variant_blob.make_public()
 
-            variants[size_name] = f"/{variant_path}"
+            # Get public URL for variant
+            variants[size_name] = self.get_public_url(variant_path)
 
         return {
             "filename": unique_filename,

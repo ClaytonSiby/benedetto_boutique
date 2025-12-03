@@ -1,10 +1,11 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, status
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, status, Response
 from typing import List
 from pathlib import Path
 import uuid
 import shutil
 from PIL import Image
 import io
+from google.cloud import storage as gcs_storage
 
 from app.api.deps import get_current_user
 from app.models.user import User
@@ -242,4 +243,51 @@ async def delete_image(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete file: {str(e)}"
+        )
+
+
+@router.get("/gcs/{blob_path:path}")
+async def proxy_gcs_image(blob_path: str):
+    """
+    Proxy images from GCS bucket.
+    This endpoint allows serving private GCS objects through the backend.
+    """
+    if not settings.USE_GCS:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="GCS storage not enabled"
+        )
+
+    try:
+        # Initialize GCS client
+        client = gcs_storage.Client(project=settings.GCP_PROJECT_ID)
+        bucket = client.bucket(settings.GCS_BUCKET_NAME)
+        blob = bucket.blob(blob_path)
+
+        if not blob.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Image not found"
+            )
+
+        # Download blob content
+        content = blob.download_as_bytes()
+
+        # Determine content type
+        content_type = blob.content_type or "image/jpeg"
+
+        return Response(
+            content=content,
+            media_type=content_type,
+            headers={
+                "Cache-Control": "public, max-age=31536000",  # Cache for 1 year
+                "Access-Control-Allow-Origin": "*"
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch image: {str(e)}"
         )
