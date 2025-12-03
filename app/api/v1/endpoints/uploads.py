@@ -8,6 +8,8 @@ import io
 
 from app.api.deps import get_current_user
 from app.models.user import User
+from app.core.config import settings
+from app.services.storage_service import storage_service
 
 router = APIRouter()
 
@@ -158,26 +160,37 @@ async def upload_multiple_images(
             # Validate image
             validate_image(file)
 
-            # Generate unique filename
-            ext = file.filename.split(".")[-1].lower()
-            unique_filename = f"{uuid.uuid4()}.{ext}"
-            file_path = UPLOAD_DIR / unique_filename
+            if settings.USE_GCS:
+                # Upload to Google Cloud Storage
+                file_content = await file.read()
+                result = storage_service.upload_image(
+                    file_content=file_content,
+                    filename=file.filename or "upload.jpg",
+                    content_type=file.content_type or "image/jpeg"
+                )
+                results.append(result)
+            else:
+                # Legacy: Upload to local filesystem
+                # Generate unique filename
+                ext = file.filename.split(".")[-1].lower()
+                unique_filename = f"{uuid.uuid4()}.{ext}"
+                file_path = UPLOAD_DIR / unique_filename
 
-            # Save original file
-            with file_path.open("wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
+                # Save original file
+                with file_path.open("wb") as buffer:
+                    shutil.copyfileobj(file.file, buffer)
 
-            # Create image variants
-            variants = create_image_variants(file_path, unique_filename)
+                # Create image variants
+                variants = create_image_variants(file_path, unique_filename)
 
-            results.append({
-                "filename": unique_filename,
-                "url": f"/uploads/{unique_filename}",
-                "variants": {
-                    size: f"/uploads/{filename}"
-                    for size, filename in variants.items()
-                }
-            })
+                results.append({
+                    "filename": unique_filename,
+                    "url": f"/uploads/{unique_filename}",
+                    "variants": {
+                        size: f"/uploads/{filename}"
+                        for size, filename in variants.items()
+                    }
+                })
         except HTTPException:
             raise
         except Exception as e:

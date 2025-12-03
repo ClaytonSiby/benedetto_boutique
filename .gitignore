@@ -5,6 +5,13 @@
 .env.production
 .env.production.example
 
+# GCP Credentials
+gcs-key.json
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+
 # Python
 __pycache__/
 *.py[cod]

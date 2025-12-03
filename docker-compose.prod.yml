@@ -51,10 +51,12 @@ services:
     environment:
       - POSTGRES_SERVER=postgres
       - POSTGRES_PORT=5432
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/gcs-key.json
     volumes:
       - ./app:/app/app
       - ./alembic:/app/alembic
       - ./scripts:/app/scripts
+      - ./gcs-key.json:/app/gcs-key.json:ro
       - uploads_data:/app/uploads
     command: >
       sh -c "alembic upgrade head &&

@@ -76,11 +76,22 @@ class Settings(BaseSettings):
     SENDGRID_FROM_EMAIL: str = "noreply@bboutique.com"
     ADMIN_EMAIL: str = "admin@bboutique.com"
 
+    # Stripe Payment Settings
+    STRIPE_SECRET_KEY: Optional[str] = None
+    STRIPE_PUBLISHABLE_KEY: Optional[str] = None
+    STRIPE_WEBHOOK_SECRET: Optional[str] = None
+    STRIPE_CURRENCY: str = "ZAR"
+
     # Google OAuth Settings
     GOOGLE_CLIENT_ID: Optional[str] = None
     GOOGLE_CLIENT_SECRET: Optional[str] = None
     GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/google/callback"
     FRONTEND_URL: str = "http://localhost:3000"
+
+    # Google Cloud Storage Settings
+    GCP_PROJECT_ID: Optional[str] = None
+    GCS_BUCKET_NAME: str = "b-boutique-uploads"
+    USE_GCS: bool = False  # Toggle between local and GCS storage
 
     # API Documentation
     DOCS_URL: str = "/docs"
