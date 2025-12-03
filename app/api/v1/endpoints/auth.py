@@ -8,6 +8,7 @@ import httpx
 
 from app.db.session import get_db
 from app.models.user import User
+from app.models.role import Role, UserRole
 from app.core.security import verify_password, create_access_token, get_password_hash
 from app.core.config import settings
 from app.schemas.auth import Token
@@ -209,5 +210,24 @@ async def create_admin_user(
     db.add(admin_user)
     db.commit()
     db.refresh(admin_user)
+
+    # Ensure 'admin' role exists and assign it to the new admin user
+    admin_role = db.query(Role).filter(Role.name == "admin").first()
+    if not admin_role:
+        admin_role = Role(
+            name="admin", description="Administrator role with elevated permissions")
+        db.add(admin_role)
+        db.commit()
+        db.refresh(admin_role)
+
+    # Link user to admin role if not already linked
+    existing_link = (
+        db.query(UserRole)
+        .filter(UserRole.user_id == admin_user.id, UserRole.role_id == admin_role.id)
+        .first()
+    )
+    if not existing_link:
+        db.add(UserRole(user_id=admin_user.id, role_id=admin_role.id))
+        db.commit()
 
     return admin_user
