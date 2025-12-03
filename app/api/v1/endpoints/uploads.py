@@ -5,7 +5,6 @@ import uuid
 import shutil
 from PIL import Image
 import io
-from google.cloud import storage as gcs_storage
 
 from app.api.deps import get_current_user
 from app.models.user import User
@@ -259,9 +258,8 @@ async def proxy_gcs_image(blob_path: str):
         )
 
     try:
-        # Initialize GCS client
-        client = gcs_storage.Client(project=settings.GCP_PROJECT_ID)
-        bucket = client.bucket(settings.GCS_BUCKET_NAME)
+        # Use the storage service's lazy-initialized client
+        bucket = storage_service.bucket
         blob = bucket.blob(blob_path)
 
         if not blob.exists():

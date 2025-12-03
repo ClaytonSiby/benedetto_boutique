@@ -12,16 +12,18 @@ from app.core.config import settings
 
 
 class StorageService:
-    """Service for handling file uploads to Google Cloud Storage"""
+    """Service for handling file uploads to Google Cloud Storage or local storage"""
 
     def __init__(self):
-        # Initialize GCS client
-        # In production, this uses Application Default Credentials
-        # Locally, it uses GOOGLE_APPLICATION_CREDENTIALS env var
-        self.client = storage.Client(project=settings.GCP_PROJECT_ID)
+        # Lazy initialization - only create GCS client when needed
+        self._client = None
+        self._bucket = None
         self.bucket_name = settings.GCS_BUCKET_NAME
-        self.bucket = self.client.bucket(self.bucket_name)
-        self.base_url = f"https://storage.googleapis.com/{self.bucket_name}"
+        self.use_gcs = settings.USE_GCS
+
+        # Local storage path
+        self.local_upload_dir = Path("uploads")
+        self.local_upload_dir.mkdir(exist_ok=True)
 
         # Image sizes for variants
         self.image_sizes = {
@@ -31,23 +33,40 @@ class StorageService:
             "large": (1200, 1200),
         }
 
+    @property
+    def client(self):
+        """Lazy initialization of GCS client"""
+        if self.use_gcs and self._client is None:
+            self._client = storage.Client(project=settings.GCP_PROJECT_ID)
+        return self._client
+
+    @property
+    def bucket(self):
+        """Lazy initialization of GCS bucket"""
+        if self.use_gcs and self._bucket is None:
+            self._bucket = self.client.bucket(self.bucket_name)
+        return self._bucket
+
     def get_public_url(self, blob_name: str) -> str:
         """
-        Get proxy URL for a blob.
-        Returns URL that proxies through the backend API.
+        Get URL for a blob (proxy URL for GCS, direct URL for local).
 
         Args:
-            blob_name: Path to the blob in the bucket
+            blob_name: Path to the blob in the bucket or local file
 
         Returns:
-            Proxy URL string
+            URL string
         """
-        # Return proxy URL through our backend
-        return f"/api/v1/uploads/gcs/{blob_name}"
+        if self.use_gcs:
+            # Return proxy URL through our backend for GCS
+            return f"/api/v1/uploads/gcs/{blob_name}"
+        else:
+            # Return local URL
+            return f"/uploads/{blob_name}"
 
     def upload_image(self, file_content: bytes, filename: str, content_type: str) -> dict:
         """
-        Upload image to GCS and create variants
+        Upload image to GCS or local storage and create variants
 
         Args:
             file_content: Raw file bytes
@@ -70,8 +89,16 @@ class StorageService:
 
         # Upload original
         original_path = f"uploads/{unique_filename}"
-        blob = self.bucket.blob(original_path)
-        blob.upload_from_string(file_content, content_type=content_type)
+
+        if self.use_gcs:
+            # Upload to GCS
+            blob = self.bucket.blob(original_path)
+            blob.upload_from_string(file_content, content_type=content_type)
+        else:
+            # Save locally
+            local_file_path = self.local_upload_dir / unique_filename
+            with open(local_file_path, "wb") as f:
+                f.write(file_content)
 
         # Get public URLs
         variants = {
@@ -93,9 +120,16 @@ class StorageService:
             variant_filename = f"{name_parts[0]}_{size_name}.{name_parts[1]}"
             variant_path = f"uploads/{variant_filename}"
 
-            variant_blob = self.bucket.blob(variant_path)
-            variant_blob.upload_from_string(
-                buffer.getvalue(), content_type="image/jpeg")
+            if self.use_gcs:
+                # Upload to GCS
+                variant_blob = self.bucket.blob(variant_path)
+                variant_blob.upload_from_string(
+                    buffer.getvalue(), content_type="image/jpeg")
+            else:
+                # Save locally
+                local_variant_path = self.local_upload_dir / variant_filename
+                with open(local_variant_path, "wb") as f:
+                    f.write(buffer.getvalue())
 
             # Get public URL for variant
             variants[size_name] = self.get_public_url(variant_path)
@@ -108,7 +142,7 @@ class StorageService:
 
     def delete_image(self, filename: str) -> bool:
         """
-        Delete image and its variants from GCS
+        Delete image and its variants from GCS or local storage
 
         Args:
             filename: Filename to delete
@@ -117,18 +151,33 @@ class StorageService:
             True if successful, False otherwise
         """
         try:
-            # Delete original
-            blob = self.bucket.blob(f"uploads/{filename}")
-            if blob.exists():
-                blob.delete()
+            if self.use_gcs:
+                # Delete from GCS
+                blob = self.bucket.blob(f"uploads/{filename}")
+                if blob.exists():
+                    blob.delete()
 
-            # Delete variants
-            name_parts = filename.rsplit(".", 1)
-            for size_name in self.image_sizes.keys():
-                variant_filename = f"{name_parts[0]}_{size_name}.{name_parts[1]}"
-                variant_blob = self.bucket.blob(f"uploads/{variant_filename}")
-                if variant_blob.exists():
-                    variant_blob.delete()
+                # Delete variants
+                name_parts = filename.rsplit(".", 1)
+                for size_name in self.image_sizes.keys():
+                    variant_filename = f"{name_parts[0]}_{size_name}.{name_parts[1]}"
+                    variant_blob = self.bucket.blob(
+                        f"uploads/{variant_filename}")
+                    if variant_blob.exists():
+                        variant_blob.delete()
+            else:
+                # Delete from local storage
+                local_file = self.local_upload_dir / filename
+                if local_file.exists():
+                    local_file.unlink()
+
+                # Delete variants
+                name_parts = filename.rsplit(".", 1)
+                for size_name in self.image_sizes.keys():
+                    variant_filename = f"{name_parts[0]}_{size_name}.{name_parts[1]}"
+                    local_variant = self.local_upload_dir / variant_filename
+                    if local_variant.exists():
+                        local_variant.unlink()
 
             return True
         except Exception as e:
