@@ -2,9 +2,8 @@
 .env
 .env.local
 .env.*.local
-
-# Keep production template
 .env.production
+.env.production.example
 
 # Python
 __pycache__/
