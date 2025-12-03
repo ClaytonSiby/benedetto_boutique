@@ -3,14 +3,10 @@
 .env.local
 .env.*.local
 .env.production
-.env.production.example
 
-# GCP Credentials
+# GCP Credentials (if using key files locally for development)
 gcs-key.json
-*.json
-!package.json
-!package-lock.json
-!tsconfig.json
+*-key.json
 
 # Python
 __pycache__/
