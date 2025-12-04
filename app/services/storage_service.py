@@ -49,7 +49,7 @@ class StorageService:
 
     def get_public_url(self, blob_name: str) -> str:
         """
-        Get URL for a blob (proxy URL for GCS, direct URL for local).
+        Get URL for a blob (direct GCS URL for GCS, direct URL for local).
 
         Args:
             blob_name: Path to the blob in the bucket or local file
@@ -58,8 +58,8 @@ class StorageService:
             URL string
         """
         if self.use_gcs:
-            # Return proxy URL through our backend for GCS
-            return f"/api/v1/uploads/gcs/{blob_name}"
+            # Return direct public GCS URL
+            return f"https://storage.googleapis.com/{self.bucket_name}/{blob_name}"
         else:
             # Return local URL
             return f"/uploads/{blob_name}"
