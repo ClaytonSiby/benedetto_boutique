@@ -1,3 +1,4 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional, List, Union
 from functools import lru_cache
@@ -21,16 +22,23 @@ class Settings(BaseSettings):
         return self.BACKEND_CORS_ORIGINS
 
     # Database Settings
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
+    # Set DATABASE_URL directly (e.g. from Supabase/Heroku) OR set individual POSTGRES_* vars.
+    DATABASE_URL_OVERRIDE: Optional[str] = Field(default=None, alias="DATABASE_URL")
+    POSTGRES_USER: Optional[str] = None
+    POSTGRES_PASSWORD: Optional[str] = None
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_PORT: str = "5432"
     POSTGRES_DB: str = "b_boutique"
-    # SSL mode for managed Postgres providers. Not needed for local Postgres.
     POSTGRES_SSLMODE: Optional[str] = None
 
     @property
     def DATABASE_URL(self) -> str:
+        if self.DATABASE_URL_OVERRIDE:
+            url = self.DATABASE_URL_OVERRIDE
+            # Normalize driver prefix for psycopg3
+            url = url.replace("postgres://", "postgresql+psycopg://", 1)
+            url = url.replace("postgresql://", "postgresql+psycopg://", 1)
+            return url
         base = f"postgresql+psycopg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
         if self.POSTGRES_SSLMODE:
             return f"{base}?sslmode={self.POSTGRES_SSLMODE}"
@@ -100,9 +108,9 @@ class Settings(BaseSettings):
     OPENAPI_URL: str = "/openapi.json"
 
     model_config = SettingsConfigDict(
-        # Load from environment by default; fall back to .env if present
         env_file=".env",
         case_sensitive=True,
+        populate_by_name=True,
         extra="ignore"
     )
 
