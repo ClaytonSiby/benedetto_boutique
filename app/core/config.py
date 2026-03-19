@@ -88,10 +88,11 @@ class Settings(BaseSettings):
     GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/google/callback"
     FRONTEND_URL: str = "http://localhost:3000"
 
-    # Google Cloud Storage Settings
-    GCP_PROJECT_ID: Optional[str] = None
-    GCS_BUCKET_NAME: str = "b-boutique-uploads"
-    USE_GCS: bool = False  # Toggle between local and GCS storage
+    # Cloudinary Settings
+    CLOUDINARY_CLOUD_NAME: Optional[str] = None
+    CLOUDINARY_API_KEY: Optional[str] = None
+    CLOUDINARY_API_SECRET: Optional[str] = None
+    USE_CLOUDINARY: bool = False  # Toggle between local and Cloudinary storage
 
     # API Documentation
     DOCS_URL: str = "/docs"

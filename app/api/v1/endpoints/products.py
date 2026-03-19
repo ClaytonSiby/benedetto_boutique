@@ -12,6 +12,13 @@ from app.api.deps import get_current_admin
 router = APIRouter()
 
 
+@router.get("/stats", tags=["products"])
+def product_stats(db: Session = Depends(get_db)):
+    """Get product statistics (total count)"""
+    total = db.query(Product).count()
+    return {"total": total}
+
+
 @router.get("/", response_model=List[ProductResponse])
 def list_products(
     skip: int = 0,

@@ -15,6 +15,15 @@ from app.api.deps import get_current_user
 router = APIRouter()
 
 
+@router.get("/stats", tags=["orders"])
+def order_stats(db: Session = Depends(get_db)):
+    """Get order statistics (total count and total revenue)"""
+    from sqlalchemy import func
+    total = db.query(Order).count()
+    total_revenue = db.query(func.coalesce(func.sum(Order.total), 0)).scalar()
+    return {"total": total, "total_revenue": float(total_revenue)}
+
+
 @router.get("/", response_model=List[OrderResponse])
 def list_orders(
     skip: int = 0,

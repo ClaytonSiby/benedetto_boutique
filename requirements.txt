@@ -33,7 +33,7 @@ stripe==11.2.0
 httpx==0.28.1
 python-dateutil==2.9.0
 Pillow==11.0.0
-google-cloud-storage==2.18.2
+cloudinary==1.42.1
 
 # Email
 sendgrid==6.11.0

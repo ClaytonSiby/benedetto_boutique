@@ -30,24 +30,15 @@ api_router.include_router(
 api_router.include_router(reviews.router, prefix="/reviews", tags=["reviews"])
 api_router.include_router(
     inventory.router, prefix="/inventory", tags=["inventory"])
-api_router.include_router(blog.router, prefix="/blog", tags=["blog"])
+api_router.include_router(blog.router, prefix="/blogs", tags=["blogs"])
 api_router.include_router(contact.router, prefix="/contact", tags=["contact"])
 api_router.include_router(health.router, prefix="/health", tags=["health"])
-
-# Public image proxy (no auth required for serving images)
-public_uploads_router = APIRouter()
-public_uploads_router.add_api_route(
-    "/gcs/{blob_path:path}",
-    uploads.proxy_gcs_image,
-    methods=["GET"],
-    tags=["uploads"]
-)
-api_router.include_router(public_uploads_router, prefix="/uploads")
 
 # Protected router: all endpoints below require valid token
 protected_router = APIRouter(dependencies=[Depends(get_current_user)])
 
-# User-specific protected endpoints
+
+# User-specific protected endpoints (including /stats)
 protected_router.include_router(users.router, prefix="/users", tags=["users"])
 protected_router.include_router(
     orders.router, prefix="/orders", tags=["orders"])

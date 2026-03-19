@@ -93,10 +93,11 @@ if not settings.DEBUG:
 # Include API router
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
-# Mount static files for uploads
-UPLOAD_DIR = Path("uploads")
-UPLOAD_DIR.mkdir(exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
+# Mount static files for local uploads (skipped when Cloudinary is enabled)
+if not settings.USE_CLOUDINARY:
+    UPLOAD_DIR = Path("uploads")
+    UPLOAD_DIR.mkdir(exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 
 # Setup admin panel
 setup_admin(app)
