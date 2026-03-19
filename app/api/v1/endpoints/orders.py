@@ -17,11 +17,42 @@ router = APIRouter()
 
 @router.get("/stats", tags=["orders"])
 def order_stats(db: Session = Depends(get_db)):
-    """Get order statistics (total count and total revenue)"""
+    """Get order statistics including status breakdown and recent orders"""
     from sqlalchemy import func
+
     total = db.query(Order).count()
     total_revenue = db.query(func.coalesce(func.sum(Order.total), 0)).scalar()
-    return {"total": total, "total_revenue": float(total_revenue)}
+
+    # Status breakdown
+    status_rows = db.query(Order.status, func.count(Order.id)).group_by(Order.status).all()
+    status_breakdown = {status.value: count for status, count in status_rows}
+
+    # Recent 5 orders with user email
+    recent_rows = (
+        db.query(Order, User.email)
+        .outerjoin(User, Order.user_id == User.id)
+        .order_by(Order.created_at.desc())
+        .limit(5)
+        .all()
+    )
+    recent_orders = [
+        {
+            "id": str(order.id),
+            "order_number": order.order_number,
+            "user_email": email or "Guest",
+            "total": float(order.total),
+            "status": order.status.value,
+            "created_at": order.created_at.isoformat(),
+        }
+        for order, email in recent_rows
+    ]
+
+    return {
+        "total": total,
+        "total_revenue": float(total_revenue),
+        "status_breakdown": status_breakdown,
+        "recent_orders": recent_orders,
+    }
 
 
 @router.get("/", response_model=List[OrderResponse])

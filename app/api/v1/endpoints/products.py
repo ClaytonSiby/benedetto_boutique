@@ -14,9 +14,10 @@ router = APIRouter()
 
 @router.get("/stats", tags=["products"])
 def product_stats(db: Session = Depends(get_db)):
-    """Get product statistics (total count)"""
+    """Get product statistics"""
     total = db.query(Product).count()
-    return {"total": total}
+    active = db.query(Product).filter(Product.is_active == True).count()
+    return {"total": total, "active": active}
 
 
 @router.get("/", response_model=List[ProductResponse])
