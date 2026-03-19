@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, status
 from typing import List
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_admin
 from app.models.user import User
 from app.services.storage_service import storage_service
 
@@ -31,14 +31,9 @@ def validate_image(file: UploadFile) -> None:
 @router.post("/upload", response_model=dict)
 async def upload_image(
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """Upload a single image. Admin only."""
-    if not current_user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only administrators can upload files"
-        )
     validate_image(file)
     try:
         file_content = await file.read()
@@ -60,14 +55,9 @@ async def upload_image(
 @router.post("/upload-multiple", response_model=List[dict])
 async def upload_multiple_images(
     files: List[UploadFile] = File(...),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """Upload multiple images (max 10). Admin only."""
-    if not current_user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only administrators can upload files"
-        )
     if len(files) > 10:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -97,14 +87,9 @@ async def upload_multiple_images(
 @router.delete("/delete/{filename}")
 async def delete_image(
     filename: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_admin)
 ):
     """Delete an uploaded image and its variants. Admin only."""
-    if not current_user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only administrators can delete files"
-        )
     success = storage_service.delete_image(filename)
     if not success:
         raise HTTPException(

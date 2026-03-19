@@ -35,24 +35,13 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     return user
 
 
-def get_current_admin(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> User:
-    """Verify current user has admin role"""
-    from app.models.role import UserRole, Role
-
-    # Check if user has admin role
-    admin_role = (
-        db.query(Role)
-        .join(UserRole)
-        .filter(UserRole.user_id == current_user.id, Role.name == "admin")
-        .first()
-    )
-
-    if not admin_role:
+def get_current_admin(current_user: User = Depends(get_current_user)) -> User:
+    """Verify current user is an admin"""
+    if not current_user.is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions. Admin access required."
         )
-
     return current_user
 
 
